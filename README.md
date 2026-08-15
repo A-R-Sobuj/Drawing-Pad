@@ -116,10 +116,12 @@ javac -version
 |:---:|
 <img width="1919" height="1015" alt="Screenshot 2026-08-15 144155" src="https://github.com/user-attachments/assets/10a6c84e-5e32-474b-9834-5270030c031b" />
 
+---
 | Canvas Drawing & Opacity |
 | :---: |
 <img width="1359" height="929" alt="Screenshot 2026-08-15 151550" src="https://github.com/user-attachments/assets/cb78939e-302c-4491-b5a8-fb3f8c9de6e6" />
 
+---
 | Color Chooser Palette | 
 |:---:|
 <img width="765" height="474" alt="Screenshot 2026-08-15 151647" src="https://github.com/user-attachments/assets/4d580feb-ba30-4c9b-8e48-187308082512" />
@@ -128,14 +130,18 @@ javac -version
 <img width="765" height="474" alt="Screenshot 2026-08-15 151657" src="https://github.com/user-attachments/assets/7edf8efa-01f7-491d-a51d-38a3a7162cc9" />
 <img width="765" height="474" alt="Screenshot 2026-08-15 151659" src="https://github.com/user-attachments/assets/a650d5b5-47c7-40d2-99d7-bc0123c20288" />
 
+---
 | Freehand Drawing & Shapes |
 |:---:|
 <img width="1359" height="929" alt="Screenshot 2026-08-15 152010" src="https://github.com/user-attachments/assets/636b8dea-d585-4db0-8c31-be919ca82904" />
 
+---
 | Grid Overlay View |
 | :---: |
 <img width="1359" height="929" alt="Screenshot 2026-08-15 152143" src="https://github.com/user-attachments/assets/01d3b6bf-9ae6-4269-ac68-6bc4f2d35459" />
 
+---
+---
 | Native File Export |
 | :---: |
 <img width="1358" height="924" alt="Screenshot 2026-08-15 152250" src="https://github.com/user-attachments/assets/878549b8-e9e0-4d0c-9faf-695ab2f1e135" />
