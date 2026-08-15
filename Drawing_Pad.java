@@ -7,7 +7,7 @@ import java.io.File;
 import java.util.*;
 import javax.imageio.ImageIO;
 
-public class Drawing_Pad_2 {
+public class Drawing_Pad {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new DrawingFrame());
     }
