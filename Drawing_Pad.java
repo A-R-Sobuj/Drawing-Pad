@@ -2,6 +2,7 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.*;
@@ -23,7 +24,7 @@ class DrawingFrame extends JFrame {
 
     DrawingFrame() {
         setTitle("Sobuj's Drawing Pad");
-        setSize(1100, 750);
+        setSize(1300, 750);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -172,6 +173,48 @@ class DrawingFrame extends JFrame {
         fillBtn.addActionListener(e -> panel.filledShapes = fillBtn.isSelected());
         gridBtn.addActionListener(e -> { panel.showGrid = gridBtn.isSelected(); panel.repaint(); });
 
+        // ── Circuit Design menu ───────────────────────────────────────────────
+        // Built as a plain JButton (so it renders identically to Color/Eraser/
+        // etc. — same look & feel, no separate menu-bar chrome) that pops open
+        // a JPopupMenu of components. Appended to the end of the existing
+        // "tools" toolbar panel, using the free horizontal space there instead
+        // of adding a new row. Nothing about the existing toolbar is touched.
+        JButton circuitDesignBtn = new JButton("Circuit Design");
+        circuitDesignBtn.setToolTipText("Pick a component, then click-and-drag on the canvas to place it");
+
+        JPopupMenu circuitPopup = new JPopupMenu();
+
+        String[][] components = {
+            // {menu label, internal tool name}
+            {"Wire",      "Line"},       // reuses the existing Line tool — a wire IS a line
+            {"Resistor",  "Resistor"},
+            {"Capacitor", "Capacitor"},
+            {"Inductor",  "Inductor"},
+            {"Battery",   "Battery"},
+            {"Ground",    "Ground"},
+            {"Switch",    "Switch"},
+            {"Diode",     "Diode"},
+            {"LED",       "LED"},
+        };
+
+        for (String[] comp : components) {
+            String label    = comp[0];
+            String toolName = comp[1];
+            JMenuItem item = new JMenuItem(label, new ComponentIcon(label));
+            item.addActionListener(e -> {
+                panel.currentShape = toolName;
+                panel.usingEraser  = false;
+                preview.repaint();
+                if (status != null)
+                    status.setText("  Circuit tool: " + label + "  —  click-drag on the canvas to place it");
+            });
+            circuitPopup.add(item);
+        }
+
+        circuitDesignBtn.addActionListener(e ->
+                circuitPopup.show(circuitDesignBtn, 0, circuitDesignBtn.getHeight()));
+        tools.add(circuitDesignBtn);
+
         setVisible(true);
     }
 }
@@ -245,6 +288,199 @@ class OvalShape extends DrawableShape {
         else        g.drawOval(r.x, r.y, r.width, r.height);
     }
     void resize(Point p) { r = RectShape.makeRect(start, p); }
+}
+
+// ── Circuit component shape ───────────────────────────────────────────────────
+// Fits into the existing DrawableShape rubber-band framework exactly like
+// LineShape/RectShape/OvalShape: press = anchor point, drag = resize(), and
+// mouseReleased commits it via draw(). No other code paths needed changing.
+class CircuitComponentShape extends DrawableShape {
+    String type;
+    Point  a, b;
+
+    CircuitComponentShape(String type, Point a, Point b, Color c, int stroke) {
+        super(c, stroke);
+        this.type = type; this.a = a; this.b = b;
+    }
+
+    void draw(Graphics2D g) {
+        double dx = b.x - a.x, dy = b.y - a.y;
+        double len = Math.hypot(dx, dy);
+
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setColor(color);
+        float lineW = Math.min(Math.max(stroke, 1.5f), 4f); // keep symbols legible at any stroke setting
+        g2.setStroke(new BasicStroke(lineW, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+        g2.translate(a.x, a.y);
+        if (len > 0.5) g2.rotate(Math.atan2(dy, dx));
+        // A plain click (no drag) still places a sensible default-size symbol.
+        CircuitSymbols.paint(g2, type, (float) Math.max(len, 24));
+        g2.dispose();
+    }
+
+    void resize(Point p) { b = p; }
+}
+
+// ── Schematic symbol rendering ────────────────────────────────────────────────
+// Draws each symbol in a canonical local frame from (0,0) to (len,0); the
+// caller (CircuitComponentShape or ComponentIcon) handles translation/rotation.
+// Shared by both the live canvas drawing and the little menu-item icons, so
+// they're always visually identical.
+class CircuitSymbols {
+
+    static void paint(Graphics2D g2, String type, float len) {
+        switch (type) {
+            case "Resistor"  -> resistor(g2, len);
+            case "Capacitor" -> capacitor(g2, len);
+            case "Inductor"  -> inductor(g2, len);
+            case "Battery"   -> battery(g2, len);
+            case "Ground"    -> ground(g2, len);
+            case "Switch"    -> circuitSwitch(g2, len);
+            case "Diode"     -> diode(g2, len, false);
+            case "LED"       -> diode(g2, len, true);
+            default          -> g2.draw(new Line2D.Float(0, 0, len, 0)); // plain wire / fallback
+        }
+    }
+
+    private static void resistor(Graphics2D g2, float len) {
+        float bodyStart = len * 0.25f, bodyEnd = len * 0.75f;
+        g2.draw(new Line2D.Float(0, 0, bodyStart, 0));
+        g2.draw(new Line2D.Float(bodyEnd, 0, len, 0));
+
+        int n = 6;
+        float segW = (bodyEnd - bodyStart) / n;
+        float amp = Math.min(8f, len / 8f);
+        Path2D.Float path = new Path2D.Float();
+        path.moveTo(bodyStart, 0);
+        for (int i = 1; i < n; i++) {
+            float x = bodyStart + i * segW;
+            float y = (i % 2 == 1) ? -amp : amp;
+            path.lineTo(x, y);
+        }
+        path.lineTo(bodyEnd, 0);
+        g2.draw(path);
+    }
+
+    private static void capacitor(Graphics2D g2, float len) {
+        float mid = len / 2f;
+        float gap = Math.min(8f, len / 6f);
+        float plateHalf = Math.min(14f, len / 3f);
+        g2.draw(new Line2D.Float(0, 0, mid - gap / 2, 0));
+        g2.draw(new Line2D.Float(mid + gap / 2, 0, len, 0));
+        g2.draw(new Line2D.Float(mid - gap / 2, -plateHalf, mid - gap / 2, plateHalf));
+        g2.draw(new Line2D.Float(mid + gap / 2, -plateHalf, mid + gap / 2, plateHalf));
+    }
+
+    private static void inductor(Graphics2D g2, float len) {
+        float bodyStart = len * 0.2f, bodyEnd = len * 0.8f;
+        g2.draw(new Line2D.Float(0, 0, bodyStart, 0));
+        g2.draw(new Line2D.Float(bodyEnd, 0, len, 0));
+
+        int bumps = 4;
+        float bumpW = (bodyEnd - bodyStart) / bumps;
+        float amp = Math.min(10f, len / 6f);
+        Path2D.Float path = new Path2D.Float();
+        path.moveTo(bodyStart, 0);
+        for (int i = 0; i < bumps; i++) {
+            float x0 = bodyStart + i * bumpW;
+            float x1 = x0 + bumpW;
+            float cx = x0 + bumpW / 2f;
+            path.quadTo(cx, -amp * 2, x1, 0);
+        }
+        g2.draw(path);
+    }
+
+    private static void battery(Graphics2D g2, float len) {
+        float mid = len / 2f;
+        float gap = Math.min(6f, len / 8f);
+        g2.draw(new Line2D.Float(0, 0, mid - gap, 0));
+        g2.draw(new Line2D.Float(mid + gap, 0, len, 0));
+
+        float longH  = Math.min(16f, len / 3f);
+        float shortH = longH * 0.5f;
+        Stroke thin = g2.getStroke();
+        g2.draw(new Line2D.Float(mid - gap, -longH, mid - gap, longH));
+        g2.setStroke(new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+        g2.draw(new Line2D.Float(mid + gap, -shortH, mid + gap, shortH));
+        g2.setStroke(thin);
+    }
+
+    private static void ground(Graphics2D g2, float len) {
+        float stemEnd = len - Math.min(14f, len / 3f);
+        g2.draw(new Line2D.Float(0, 0, stemEnd, 0));
+
+        float[] widths = {16f, 10f, 4f};
+        float step = Math.min(5f, Math.max(1f, (len - stemEnd) / 3f));
+        for (int i = 0; i < 3; i++) {
+            float x = stemEnd + i * step;
+            float w = Math.min(widths[i], len / 2f);
+            g2.draw(new Line2D.Float(x, -w / 2, x, w / 2));
+        }
+    }
+
+    private static void circuitSwitch(Graphics2D g2, float len) {
+        float p1 = len * 0.3f, p2 = len * 0.7f;
+        g2.draw(new Line2D.Float(0, 0, p1, 0));
+        g2.draw(new Line2D.Float(p2, 0, len, 0));
+
+        float r = Math.min(3f, len / 20f);
+        g2.fill(new Ellipse2D.Float(p1 - r, -r, r * 2, r * 2));
+        g2.fill(new Ellipse2D.Float(p2 - r, -r, r * 2, r * 2));
+
+        float lift = Math.min(12f, len / 6f);
+        g2.draw(new Line2D.Float(p1, 0, p2 - (p2 - p1) * 0.15f, -lift));
+    }
+
+    private static void diode(Graphics2D g2, float len, boolean led) {
+        float mid = len / 2f;
+        float half = Math.min(8f, len / 6f);
+        g2.draw(new Line2D.Float(0, 0, mid - half, 0));
+        g2.draw(new Line2D.Float(mid + half, 0, len, 0));
+
+        Path2D.Float tri = new Path2D.Float();
+        tri.moveTo(mid - half, -half);
+        tri.lineTo(mid - half, half);
+        tri.lineTo(mid + half, 0);
+        tri.closePath();
+        g2.fill(tri);
+        g2.draw(new Line2D.Float(mid + half, -half, mid + half, half));
+
+        if (led) {
+            float lx = mid + half * 1.2f, ly = -half * 1.8f;
+            for (int i = 0; i < 2; i++) {
+                float ox = i * 5f;
+                g2.draw(new Line2D.Float(lx + ox, ly - ox, lx + ox + 6f, ly - ox - 6f));
+                g2.draw(new Line2D.Float(lx + ox + 2f, ly - ox - 6f, lx + ox + 6f, ly - ox - 6f));
+                g2.draw(new Line2D.Float(lx + ox + 6f, ly - ox - 2f, lx + ox + 6f, ly - ox - 6f));
+            }
+        }
+    }
+}
+
+// ── Small menu-item icon ──────────────────────────────────────────────────────
+// Renders the same schematic symbol used on the canvas, shrunk into a menu icon.
+class ComponentIcon implements Icon {
+    private final String type;
+    private final int w, h;
+
+    ComponentIcon(String type) { this(type, 34, 20); }
+    ComponentIcon(String type, int w, int h) { this.type = type; this.w = w; this.h = h; }
+
+    @Override public int getIconWidth()  { return w; }
+    @Override public int getIconHeight() { return h; }
+
+    @Override
+    public void paintIcon(Component c, Graphics g, int x, int y) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setColor(c != null && !c.isEnabled() ? Color.GRAY : Color.BLACK);
+        g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g2.translate(x + 3, y + h / 2.0);
+        CircuitSymbols.paint(g2, type, w - 6);
+        g2.dispose();
+    }
 }
 
 // ── Drawing panel ─────────────────────────────────────────────────────────────
@@ -384,6 +620,8 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
             case "Line"      -> liveShape = new LineShape(startPoint, startPoint, drawColor, strokeWidth);
             case "Rectangle" -> liveShape = new RectShape(startPoint, startPoint, drawColor, strokeWidth, filledShapes);
             case "Oval"      -> liveShape = new OvalShape(startPoint, startPoint, drawColor, strokeWidth, filledShapes);
+            case "Resistor", "Capacitor", "Inductor", "Battery", "Ground", "Switch", "Diode", "LED" ->
+                    liveShape = new CircuitComponentShape(currentShape, startPoint, startPoint, drawColor, strokeWidth);
         }
         repaint();
     }
