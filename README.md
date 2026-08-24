@@ -145,6 +145,7 @@ javac -version
 | Native File Export |
 | :---: |
 <img width="1358" height="924" alt="Screenshot 2026-08-15 152250" src="https://github.com/user-attachments/assets/878549b8-e9e0-4d0c-9faf-695ab2f1e135" />
+<img width="1286" height="626" alt="Um actually" src="https://github.com/user-attachments/assets/a0c46e1c-8d49-42fd-ac31-8b3ec4046899" />
 
 ---
 
