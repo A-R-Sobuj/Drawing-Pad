@@ -133,6 +133,25 @@ class DrawingFrame extends JFrame {
         redoBtn.addActionListener(e -> { panel.redo(); preview.repaint(); });
         clearBtn.addActionListener(e -> panel.clear());
 
+        // ── Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y redo ────────────────────────
+        // Bound on the whole window (WHEN_IN_FOCUSED_WINDOW) so they work no
+        // matter which component currently has focus, without altering any
+        // existing button behavior — undoBtn/redoBtn keep working exactly as
+        // before.
+        JRootPane rootPaneRef = getRootPane();
+        InputMap  windowInputMap  = rootPaneRef.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap windowActionMap = rootPaneRef.getActionMap();
+
+        windowInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK), "undoAction");
+        windowActionMap.put("undoAction", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent e) { panel.undo(); preview.repaint(); }
+        });
+
+        windowInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_Y, InputEvent.CTRL_DOWN_MASK), "redoAction");
+        windowActionMap.put("redoAction", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent e) { panel.redo(); preview.repaint(); }
+        });
+
         saveBtn.addActionListener(e -> {
             JFileChooser fc = new JFileChooser(lastSaveDirectory);
             fc.setFileFilter(new FileNameExtensionFilter("PNG Image", "png"));
