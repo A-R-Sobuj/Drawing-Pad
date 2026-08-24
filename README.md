@@ -141,6 +141,10 @@ javac -version
 <img width="1359" height="929" alt="Screenshot 2026-08-15 152143" src="https://github.com/user-attachments/assets/01d3b6bf-9ae6-4269-ac68-6bc4f2d35459" />
 
 ---
+| Basic Circuit Design |
+| :---: |
+<img width="1608" height="928" alt="Screenshot 2026-08-24 172348" src="https://github.com/user-attachments/assets/71f3c524-4b4b-4003-8423-6b1e0a840c69" />
+
 ---
 | Native File Export |
 | :---: |
