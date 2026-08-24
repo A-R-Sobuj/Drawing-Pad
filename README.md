@@ -144,6 +144,8 @@ javac -version
 | Basic Circuit Design |
 | :---: |
 <img width="1608" height="928" alt="Screenshot 2026-08-24 172348" src="https://github.com/user-attachments/assets/71f3c524-4b4b-4003-8423-6b1e0a840c69" />
+Circuit Design is much easier with the Grid function
+<img width="1608" height="928" alt="Screenshot 2026-08-24 172823" src="https://github.com/user-attachments/assets/f0a27c9e-a320-46c5-92e3-ac5b8d69a2f0" />
 
 ---
 | Native File Export |
