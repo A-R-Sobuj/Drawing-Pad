@@ -24,7 +24,7 @@ class DrawingFrame extends JFrame {
 
     DrawingFrame() {
         setTitle("Sobuj's Drawing Pad");
-        setSize(1300, 750);
+        setSize(1480, 750);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -152,6 +152,15 @@ class DrawingFrame extends JFrame {
             @Override public void actionPerformed(ActionEvent e) { panel.redo(); preview.repaint(); }
         });
 
+        // Delete/Backspace removes the currently selected circuit component
+        // (Select tool only — no-op otherwise, so it never interferes with
+        // any other feature).
+        windowInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "deleteAction");
+        windowInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), "deleteAction");
+        windowActionMap.put("deleteAction", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent e) { panel.deleteSelected(); }
+        });
+
         saveBtn.addActionListener(e -> {
             JFileChooser fc = new JFileChooser(lastSaveDirectory);
             fc.setFileFilter(new FileNameExtensionFilter("PNG Image", "png"));
@@ -162,7 +171,7 @@ class DrawingFrame extends JFrame {
     File f = fc.getSelectedFile();
                 if (!f.getName().endsWith(".png")) f = new File(f.getPath() + ".png");
                 try {
-                    ImageIO.write(panel.canvas, "PNG", f);
+                    ImageIO.write(panel.renderFlattened(), "PNG", f);
                     JOptionPane.showMessageDialog(this, "Saved: " + f.getAbsolutePath());
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(this, "Save failed: " + ex.getMessage());
@@ -203,9 +212,21 @@ class DrawingFrame extends JFrame {
 
         JPopupMenu circuitPopup = new JPopupMenu();
 
+        JMenuItem selectItem = new JMenuItem("Select / Move", new SelectIcon());
+        selectItem.setToolTipText("Click a placed component, then drag its body to move it or drag an end to resize/rotate it");
+        selectItem.addActionListener(e -> {
+            panel.currentShape = "Select";
+            panel.usingEraser  = false;
+            preview.repaint();
+            if (status != null)
+                status.setText("  Select tool — click a circuit component to edit it");
+        });
+        circuitPopup.add(selectItem);
+        circuitPopup.addSeparator();
+
         String[][] components = {
             // {menu label, internal tool name}
-            {"Wire",      "Line"},       // reuses the existing Line tool — a wire IS a line
+            {"Wire",      "Wire"},
             {"Resistor",  "Resistor"},
             {"Capacitor", "Capacitor"},
             {"Inductor",  "Inductor"},
@@ -233,6 +254,17 @@ class DrawingFrame extends JFrame {
         circuitDesignBtn.addActionListener(e ->
                 circuitPopup.show(circuitDesignBtn, 0, circuitDesignBtn.getHeight()));
         tools.add(circuitDesignBtn);
+
+        // ── Magnet toggle ────────────────────────────────────────────────────
+        // Snaps newly placed / moved / resized circuit components to the grid
+        // and to nearby endpoints of other components. Plain JToggleButton
+        // (same style as Fill/Grid) placed right beside Circuit Design, so it
+        // matches the existing toolbar look and stays visible at the default
+        // window size.
+        JToggleButton magnetBtn = new JToggleButton("Magnet", new MagnetIcon(), true);
+        magnetBtn.setToolTipText("Snap circuit components to the grid and to each other's endpoints");
+        magnetBtn.addActionListener(e -> panel.magnetEnabled = magnetBtn.isSelected());
+        tools.add(magnetBtn);
 
         setVisible(true);
     }
@@ -340,6 +372,12 @@ class CircuitComponentShape extends DrawableShape {
     }
 
     void resize(Point p) { b = p; }
+
+    // Deep copy — used when snapshotting state for undo/redo, so history
+    // entries don't alias the live, editable object.
+    CircuitComponentShape copy() {
+        return new CircuitComponentShape(type, new Point(a), new Point(b), color, stroke);
+    }
 }
 
 // ── Schematic symbol rendering ────────────────────────────────────────────────
@@ -502,6 +540,84 @@ class ComponentIcon implements Icon {
     }
 }
 
+// ── Select-tool icon ──────────────────────────────────────────────────────────
+// A simple pointer-arrow glyph for the "Select / Move" menu entry.
+class SelectIcon implements Icon {
+    @Override public int getIconWidth()  { return 18; }
+    @Override public int getIconHeight() { return 18; }
+
+    @Override
+    public void paintIcon(Component c, Graphics g, int x, int y) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.translate(x, y);
+        Path2D.Float arrow = new Path2D.Float();
+        arrow.moveTo(2, 1);
+        arrow.lineTo(2, 15);
+        arrow.lineTo(6, 11.5f);
+        arrow.lineTo(9, 17);
+        arrow.lineTo(11, 16);
+        arrow.lineTo(8, 10.5f);
+        arrow.lineTo(13, 10.5f);
+        arrow.closePath();
+        g2.setColor(c != null && !c.isEnabled() ? Color.GRAY : Color.BLACK);
+        g2.fill(arrow);
+        g2.dispose();
+    }
+}
+
+// ── Magnet-toggle icon ──────────────────────────────────────────────────────
+// A small horseshoe-magnet glyph for the Magnet toggle button.
+class MagnetIcon implements Icon {
+    @Override public int getIconWidth()  { return 18; }
+    @Override public int getIconHeight() { return 18; }
+
+    @Override
+    public void paintIcon(Component c, Graphics g, int x, int y) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.translate(x, y + 2);
+
+        boolean enabled = c == null || c.isEnabled();
+        Color bodyColor = enabled ? new Color(196, 42, 42) : Color.GRAY;
+        Color tipColor  = enabled ? new Color(200, 200, 205) : Color.LIGHT_GRAY;
+
+        // Horseshoe outline traced as a single stroked path: up the left leg,
+        // over the rounded top, down the right leg — no ambiguous arc angles.
+        Path2D.Float horseshoe = new Path2D.Float();
+        horseshoe.moveTo(3, 15);
+        horseshoe.lineTo(3, 6);
+        horseshoe.quadTo(3, -1, 9, -1);
+        horseshoe.quadTo(15, -1, 15, 6);
+        horseshoe.lineTo(15, 15);
+
+        g2.setColor(bodyColor);
+        g2.setStroke(new BasicStroke(4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g2.draw(horseshoe);
+
+        // Silver contact tips at the bottom of each leg
+        g2.setColor(tipColor);
+        g2.setStroke(new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+        g2.drawLine(3, 12, 3, 15);
+        g2.drawLine(15, 12, 15, 15);
+
+        g2.dispose();
+    }
+}
+
+// ── Undo/redo snapshot ────────────────────────────────────────────────────────
+// Bundles the raster canvas together with a deep copy of the currently placed
+// circuit components, so a single undo/redo timeline covers both freehand/
+// shape edits AND circuit component placement, moves, resizes, and deletes.
+class CanvasState {
+    final BufferedImage image;
+    final java.util.List<CircuitComponentShape> components;
+    CanvasState(BufferedImage image, java.util.List<CircuitComponentShape> components) {
+        this.image = image;
+        this.components = components;
+    }
+}
+
 // ── Drawing panel ─────────────────────────────────────────────────────────────
 class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener {
 
@@ -509,8 +625,17 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
     // so the eraser (which paints white) works without any compositing tricks.
     BufferedImage canvas;
 
-    Stack<BufferedImage> undoStack = new Stack<>();
-    Stack<BufferedImage> redoStack = new Stack<>();
+    Stack<CanvasState> undoStack = new Stack<>();
+    Stack<CanvasState> redoStack = new Stack<>();
+
+    // Circuit components are kept as live, editable objects (not baked into
+    // the raster canvas) so they can be selected, moved, and resized later
+    // with the Select tool. Everything else (freehand strokes, Line/
+    // Rectangle/Oval shapes) still commits straight to the canvas, unchanged.
+    java.util.List<CircuitComponentShape> circuitComponents = new ArrayList<>();
+    CircuitComponentShape selectedComponent; // currently selected, or null
+    int   dragHandle;                        // 0 = none, 1 = endpoint a, 2 = endpoint b, 3 = whole body
+    Point dragAnchorA, dragAnchorB, dragStart; // starting state for a body move
 
     // In-progress shape for rubber-band preview (shapes) or segment tracking (freehand)
     DrawableShape liveShape;
@@ -526,6 +651,10 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
     boolean usingEraser  = false;
     boolean filledShapes = false;
     boolean showGrid     = false;
+    boolean magnetEnabled = true; // snap circuit components to grid / other endpoints
+
+    static final int GRID_SIZE   = 20; // matches the visual grid overlay spacing
+    static final int SNAP_RADIUS = 12; // px, for both grid- and endpoint-snapping
 
     JLabel statusBar;
 
@@ -553,12 +682,30 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         return canvas;
     }
 
-    // Deep copy of the current canvas for undo/redo snapshots.
-    private BufferedImage snapshot() {
+    // Deep copy of the current canvas + circuit components, for undo/redo snapshots.
+    private CanvasState snapshot() {
         BufferedImage img = new BufferedImage(
             getCanvas().getWidth(), getCanvas().getHeight(), BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
         g.drawImage(canvas, 0, 0, null);
+        g.dispose();
+
+        java.util.List<CircuitComponentShape> compsCopy = new ArrayList<>();
+        for (CircuitComponentShape c : circuitComponents) compsCopy.add(c.copy());
+
+        return new CanvasState(img, compsCopy);
+    }
+
+    // Flattens the raster canvas and all placed circuit components into a
+    // single image — used for Save PNG so exported files show exactly what's
+    // on screen, even though components live as separate editable objects.
+    BufferedImage renderFlattened() {
+        BufferedImage img = new BufferedImage(
+            getCanvas().getWidth(), getCanvas().getHeight(), BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.drawImage(canvas, 0, 0, null);
+        for (CircuitComponentShape c : circuitComponents) c.draw(g);
         g.dispose();
         return img;
     }
@@ -585,11 +732,20 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         if (showGrid) {
             g2.setColor(new Color(180, 180, 180));
             g2.setStroke(new BasicStroke(0.5f));
-            for (int x = 0; x < getWidth();  x += 20) g2.drawLine(x, 0, x, getHeight());
-            for (int y = 0; y < getHeight(); y += 20) g2.drawLine(0, y, getWidth(), y);
+            for (int x = 0; x < getWidth();  x += GRID_SIZE) g2.drawLine(x, 0, x, getHeight());
+            for (int y = 0; y < getHeight(); y += GRID_SIZE) g2.drawLine(0, y, getWidth(), y);
         }
 
-        // Rubber-band preview for shapes (Line / Rect / Oval)
+        // Persistent circuit components — kept as live objects (not baked
+        // into the raster canvas) so the Select tool can move/resize them.
+        for (CircuitComponentShape comp : circuitComponents) {
+            comp.draw(g2);
+        }
+        if ("Select".equals(currentShape) && selectedComponent != null) {
+            drawSelectionHandles(g2, selectedComponent);
+        }
+
+        // Rubber-band preview for shapes (Line / Rect / Oval / new circuit component)
         if (liveShape != null && !(liveShape instanceof Freehand)) {
             liveShape.draw(g2);
         }
@@ -612,12 +768,128 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         }
     }
 
+    // Small square handles at each end of the selected circuit component.
+    private void drawSelectionHandles(Graphics2D g2, CircuitComponentShape c) {
+        Graphics2D h = (Graphics2D) g2.create();
+        h.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        int r = 5;
+        for (Point p : new Point[]{c.a, c.b}) {
+            h.setColor(Color.WHITE);
+            h.fillRect(p.x - r, p.y - r, 2 * r, 2 * r);
+            h.setColor(new Color(30, 120, 255));
+            h.setStroke(new BasicStroke(1.4f));
+            h.drawRect(p.x - r, p.y - r, 2 * r, 2 * r);
+        }
+        h.dispose();
+    }
+
+    // ── Select-tool hit testing ──────────────────────────────────────────────
+
+    // 0 = no hit, 1 = endpoint a, 2 = endpoint b, 3 = component body.
+    private int hitTest(CircuitComponentShape c, Point p) {
+        double handleR = 9;
+        if (p.distance(c.a) <= handleR) return 1;
+        if (p.distance(c.b) <= handleR) return 2;
+        if (distToSegment(p, c.a, c.b) <= 6) return 3;
+        return 0;
+    }
+
+    private static double distToSegment(Point p, Point a, Point b) {
+        double dx = b.x - a.x, dy = b.y - a.y;
+        double lenSq = dx * dx + dy * dy;
+        if (lenSq < 1e-6) return p.distance(a);
+        double t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
+        t = Math.max(0, Math.min(1, t));
+        double px = a.x + t * dx, py = a.y + t * dy;
+        return Math.hypot(p.x - px, p.y - py);
+    }
+
+    // ── Magnet: snap-to-grid / snap-to-endpoint ─────────────────────────────
+
+    // Snaps p to the nearest OTHER circuit component's endpoint if one is
+    // close enough (this takes priority, so wires connect cleanly to leads);
+    // otherwise to the nearest grid intersection if that's close enough;
+    // otherwise returns p unchanged. Never snaps to selectedComponent's own
+    // endpoints, so moving/resizing a component can't just stick to itself.
+    private Point snapPoint(Point p) {
+        Point  best     = null;
+        double bestDist = SNAP_RADIUS;
+        for (CircuitComponentShape c : circuitComponents) {
+            if (c == selectedComponent) continue;
+            for (Point ep : new Point[]{c.a, c.b}) {
+                double d = p.distance(ep);
+                if (d < bestDist) { bestDist = d; best = ep; }
+            }
+        }
+        if (best != null) return new Point(best);
+
+        int gx = Math.round(p.x / (float) GRID_SIZE) * GRID_SIZE;
+        int gy = Math.round(p.y / (float) GRID_SIZE) * GRID_SIZE;
+        Point gridPt = new Point(gx, gy);
+        return (p.distance(gridPt) <= SNAP_RADIUS) ? gridPt : p;
+    }
+
+    // Locks 'moving' onto a horizontal or vertical line through 'fixed' —
+    // whichever axis has the larger displacement — for the Shift-to-
+    // straighten behavior (as in Word/PowerPoint/etc. line-drawing tools).
+    private static Point axisConstrain(Point moving, Point fixed) {
+        int dx = moving.x - fixed.x, dy = moving.y - fixed.y;
+        return (Math.abs(dx) >= Math.abs(dy))
+                ? new Point(moving.x, fixed.y)
+                : new Point(fixed.x, moving.y);
+    }
+
+    // Called by mousePressed when in Select mode: finds the topmost component
+    // under the click (if any), selects it, and records enough state to
+    // resize/move it as the drag proceeds. Pushes an undo snapshot only when
+    // an actual edit is about to start — clicking empty space just clears
+    // the selection without creating a wasted undo step.
+    private void handleSelectPress(Point p) {
+        selectedComponent = null;
+        dragHandle = 0;
+        for (int i = circuitComponents.size() - 1; i >= 0; i--) {
+            CircuitComponentShape c = circuitComponents.get(i);
+            int hit = hitTest(c, p);
+            if (hit != 0) {
+                undoStack.push(snapshot());
+                redoStack.clear();
+                selectedComponent = c;
+                dragHandle = hit;
+                dragAnchorA = new Point(c.a);
+                dragAnchorB = new Point(c.b);
+                dragStart = p;
+                break;
+            }
+        }
+    }
+
+    // Removes the currently selected component (Select tool only).
+    void deleteSelected() {
+        if (!"Select".equals(currentShape) || selectedComponent == null) return;
+        undoStack.push(snapshot());
+        redoStack.clear();
+        circuitComponents.remove(selectedComponent);
+        selectedComponent = null;
+        dragHandle = 0;
+        repaint();
+    }
+
     // ── Mouse events ──────────────────────────────────────────────────────────
 
     @Override
     public void mousePressed(MouseEvent e) {
         startPoint = e.getPoint();
         lastPoint  = startPoint;
+
+        if ("Select".equals(currentShape)) {
+            handleSelectPress(startPoint);
+            if (statusBar != null)
+                statusBar.setText(selectedComponent != null
+                    ? "  Selected " + selectedComponent.type + " — drag to move/resize, Delete to remove"
+                    : "  Select tool — click a circuit component to edit it");
+            repaint();
+            return;
+        }
 
         // Save undo snapshot before every stroke
         undoStack.push(snapshot());
@@ -639,16 +911,57 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
             case "Line"      -> liveShape = new LineShape(startPoint, startPoint, drawColor, strokeWidth);
             case "Rectangle" -> liveShape = new RectShape(startPoint, startPoint, drawColor, strokeWidth, filledShapes);
             case "Oval"      -> liveShape = new OvalShape(startPoint, startPoint, drawColor, strokeWidth, filledShapes);
-            case "Resistor", "Capacitor", "Inductor", "Battery", "Ground", "Switch", "Diode", "LED" ->
-                    liveShape = new CircuitComponentShape(currentShape, startPoint, startPoint, drawColor, strokeWidth);
+            case "Resistor", "Capacitor", "Inductor", "Battery", "Ground", "Switch", "Diode", "LED", "Wire" -> {
+                if (magnetEnabled) startPoint = snapPoint(startPoint);
+                liveShape = new CircuitComponentShape(currentShape, startPoint, startPoint, drawColor, strokeWidth);
+            }
         }
         repaint();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        if (liveShape == null) return;
         Point current = e.getPoint();
+
+        if ("Select".equals(currentShape)) {
+            if (selectedComponent == null || dragHandle == 0) return;
+            switch (dragHandle) {
+                case 1 -> {
+                    Point p = current;
+                    if (e.isShiftDown())        p = axisConstrain(p, selectedComponent.b);
+                    else if (magnetEnabled)     p = snapPoint(p);
+                    selectedComponent.a = p;
+                }
+                case 2 -> {
+                    Point p = current;
+                    if (e.isShiftDown())        p = axisConstrain(p, selectedComponent.a);
+                    else if (magnetEnabled)     p = snapPoint(p);
+                    selectedComponent.b = p;
+                }
+                case 3 -> {
+                    int dx = current.x - dragStart.x, dy = current.y - dragStart.y;
+                    Point newA = new Point(dragAnchorA.x + dx, dragAnchorA.y + dy);
+                    Point newB = new Point(dragAnchorB.x + dx, dragAnchorB.y + dy);
+                    if (magnetEnabled) {
+                        // Snap based on endpoint 'a', then carry the same
+                        // correction over to 'b' so the component keeps its
+                        // exact shape/length while its anchor end aligns.
+                        Point snappedA = snapPoint(newA);
+                        int sdx = snappedA.x - newA.x, sdy = snappedA.y - newA.y;
+                        newA = snappedA;
+                        newB = new Point(newB.x + sdx, newB.y + sdy);
+                    }
+                    selectedComponent.a = newA;
+                    selectedComponent.b = newB;
+                }
+            }
+            if (statusBar != null)
+                statusBar.setText("  Moving " + selectedComponent.type);
+            repaint();
+            return;
+        }
+
+        if (liveShape == null) return;
         mousePosition = current;
 
         if (liveShape instanceof Freehand fh) {
@@ -664,8 +977,18 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
 
             lastPoint = current;
         } else {
-            // Rubber-band: just update the endpoint, paintComponent draws the preview
-            liveShape.resize(current);
+            // Rubber-band: just update the endpoint, paintComponent draws the preview.
+            // Shift locks Line/circuit-component drags to horizontal or vertical
+            // (like Word/PowerPoint); otherwise Magnet snaps new circuit
+            // components to the grid or nearby endpoints. Rectangle/Oval/
+            // Freehand behavior is completely unaffected either way.
+            Point target = current;
+            if (e.isShiftDown() && (liveShape instanceof LineShape || liveShape instanceof CircuitComponentShape)) {
+                target = axisConstrain(current, startPoint);
+            } else if (magnetEnabled && liveShape instanceof CircuitComponentShape) {
+                target = snapPoint(current);
+            }
+            liveShape.resize(target);
         }
 
         if (statusBar != null)
@@ -678,9 +1001,24 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
 
     @Override
     public void mouseReleased(MouseEvent e) {
+        if ("Select".equals(currentShape)) {
+            dragHandle = 0; // stop dragging, keep the selection so handles stay visible
+            if (statusBar != null)
+                statusBar.setText(selectedComponent != null
+                    ? "  Selected " + selectedComponent.type + " — drag to move/resize, Delete to remove"
+                    : "  Select tool — click a circuit component to edit it");
+            repaint();
+            return;
+        }
+
         if (liveShape == null) return;
 
-        if (!(liveShape instanceof Freehand)) {
+        if (liveShape instanceof CircuitComponentShape ccs) {
+            // Keep circuit components as live, editable objects instead of
+            // baking them into the raster canvas, so the Select tool can
+            // move/resize them later.
+            circuitComponents.add(ccs);
+        } else if (!(liveShape instanceof Freehand)) {
             // Commit the finished shape onto the canvas
             Graphics2D g = canvasGraphics();
             liveShape.draw(g);
@@ -699,7 +1037,11 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
     void undo() {
         if (!undoStack.isEmpty()) {
             redoStack.push(snapshot());
-            canvas = undoStack.pop();
+            CanvasState state = undoStack.pop();
+            canvas = state.image;
+            circuitComponents = state.components;
+            selectedComponent = null;
+            dragHandle = 0;
             repaint();
         }
     }
@@ -707,7 +1049,11 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
     void redo() {
         if (!redoStack.isEmpty()) {
             undoStack.push(snapshot());
-            canvas = redoStack.pop();
+            CanvasState state = redoStack.pop();
+            canvas = state.image;
+            circuitComponents = state.components;
+            selectedComponent = null;
+            dragHandle = 0;
             repaint();
         }
     }
@@ -719,6 +1065,9 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
         g.dispose();
+        circuitComponents.clear();
+        selectedComponent = null;
+        dragHandle = 0;
         repaint();
     }
 
@@ -728,6 +1077,16 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         mousePosition = e.getPoint();
         if (statusBar != null)
             statusBar.setText(String.format("  x:%d  y:%d", e.getX(), e.getY()));
+
+        if ("Select".equals(currentShape)) {
+            boolean over = false;
+            for (CircuitComponentShape c : circuitComponents) {
+                if (hitTest(c, mousePosition) != 0) { over = true; break; }
+            }
+            setCursor(Cursor.getPredefinedCursor(over ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
+        } else if (getCursor().getType() != Cursor.DEFAULT_CURSOR) {
+            setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+        }
         repaint();
     }
     @Override public void mouseClicked(MouseEvent e) {}
