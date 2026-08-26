@@ -960,6 +960,17 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
                 : new Point(fixed.x, moving.y);
     }
 
+    // Locks 'moving' so the box from 'anchor' to it is a perfect square —
+    // side length is the larger of |dx|/|dy|, each axis keeping its own drag
+    // direction — for Shift-constrained Rectangle/Oval (square/circle).
+    private static Point squareConstrain(Point moving, Point anchor) {
+        int dx = moving.x - anchor.x, dy = moving.y - anchor.y;
+        int side = Math.max(Math.abs(dx), Math.abs(dy));
+        int sx = anchor.x + (dx < 0 ? -side : side);
+        int sy = anchor.y + (dy < 0 ? -side : side);
+        return new Point(sx, sy);
+    }
+
     // Called by mousePressed when in Select mode: finds the topmost object
     // under the click (a text box first, since those are drawn on top, then
     // circuit components), selects it, and records enough state to
@@ -1152,12 +1163,15 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         } else {
             // Rubber-band: just update the endpoint, paintComponent draws the preview.
             // Shift locks Line/circuit-component drags to horizontal or vertical
-            // (like Word/PowerPoint); otherwise Magnet snaps new circuit
-            // components to the grid or nearby endpoints. Rectangle/Oval/
-            // Freehand behavior is completely unaffected either way.
+            // (like Word/PowerPoint), and locks Rectangle/Oval drags to a
+            // perfect square/circle — regardless of the Fill toggle. Otherwise
+            // Magnet snaps new circuit components to the grid or nearby
+            // endpoints. Freehand behavior is completely unaffected.
             Point target = current;
             if (e.isShiftDown() && (liveShape instanceof LineShape || liveShape instanceof CircuitComponentShape)) {
                 target = axisConstrain(current, startPoint);
+            } else if (e.isShiftDown() && (liveShape instanceof RectShape || liveShape instanceof OvalShape)) {
+                target = squareConstrain(current, startPoint);
             } else if (magnetEnabled && liveShape instanceof CircuitComponentShape) {
                 target = snapPoint(current);
             }
