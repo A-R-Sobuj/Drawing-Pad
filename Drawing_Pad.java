@@ -24,7 +24,7 @@ class DrawingFrame extends JFrame {
 
     DrawingFrame() {
         setTitle("Sobuj's Drawing Pad");
-        setSize(1480, 750);
+        setSize(1600, 750);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -265,6 +265,22 @@ class DrawingFrame extends JFrame {
         magnetBtn.setToolTipText("Snap circuit components to the grid and to each other's endpoints");
         magnetBtn.addActionListener(e -> panel.magnetEnabled = magnetBtn.isSelected());
         tools.add(magnetBtn);
+
+        // ── Textbox tool ─────────────────────────────────────────────────────
+        // Click on the canvas to drop a movable/editable text label — handy
+        // for writing component values (e.g. "R1 = 220Ω") next to a part.
+        // Plain JButton (same style as Color/Eraser/etc.) placed right beside
+        // Magnet, per request.
+        JButton textboxBtn = new JButton("Textbox", new TextboxIcon());
+        textboxBtn.setToolTipText("Click on the canvas to add a text label (e.g. a component value)");
+        textboxBtn.addActionListener(e -> {
+            panel.currentShape = "Textbox";
+            panel.usingEraser  = false;
+            preview.repaint();
+            if (status != null)
+                status.setText("  Textbox tool — click on the canvas to add a label");
+        });
+        tools.add(textboxBtn);
 
         setVisible(true);
     }
@@ -605,16 +621,93 @@ class MagnetIcon implements Icon {
     }
 }
 
+// ── Text-box label ─────────────────────────────────────────────────────────────
+// A simple movable/editable text label — used to annotate circuit component
+// values (e.g. "R1 = 220Ω"). 'position' is the text baseline's left point,
+// same convention Graphics2D.drawString uses.
+class TextBoxShape {
+    Point  position;
+    String text;
+    Color  color;
+
+    static final Font FONT = new Font("SansSerif", Font.PLAIN, 14);
+    // A tiny offscreen Graphics2D purely for FontMetrics — lets bounds() work
+    // for hit-testing even before the panel has been painted.
+    private static final Graphics2D METRICS =
+            new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB).createGraphics();
+
+    TextBoxShape(Point position, String text, Color color) {
+        this.position = position; this.text = text; this.color = color;
+    }
+
+    private static FontMetrics metrics() {
+        METRICS.setFont(FONT);
+        return METRICS.getFontMetrics();
+    }
+
+    // Bounding box (with a little padding) used for both hit-testing and the
+    // legibility backing plate drawn behind the text.
+    Rectangle bounds() {
+        FontMetrics fm = metrics();
+        int w = fm.stringWidth(text == null ? "" : text), h = fm.getHeight();
+        int pad = 3;
+        return new Rectangle(position.x - pad, position.y - fm.getAscent() - pad, w + pad * 2, h + pad * 2);
+    }
+
+    void draw(Graphics2D g) {
+        g.setFont(FONT);
+        Rectangle b = bounds();
+        g.setColor(new Color(255, 255, 255, 210)); // legibility plate over other drawing
+        g.fillRect(b.x, b.y, b.width, b.height);
+        g.setColor(color);
+        g.drawString(text, position.x, position.y);
+    }
+
+    TextBoxShape copy() { return new TextBoxShape(new Point(position), text, color); }
+}
+
+// ── Textbox-tool icon ────────────────────────────────────────────────────────
+class TextboxIcon implements Icon {
+    @Override public int getIconWidth()  { return 18; }
+    @Override public int getIconHeight() { return 18; }
+
+    @Override
+    public void paintIcon(Component c, Graphics g, int x, int y) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.translate(x, y);
+
+        boolean enabled = c == null || c.isEnabled();
+        g2.setColor(enabled ? Color.DARK_GRAY : Color.GRAY);
+        g2.setStroke(new BasicStroke(1.4f));
+        g2.drawRoundRect(1, 2, 16, 14, 3, 3);
+
+        g2.setFont(new Font("Serif", Font.BOLD, 12));
+        FontMetrics fm = g2.getFontMetrics();
+        String s = "T";
+        int tx = 1 + (16 - fm.stringWidth(s)) / 2;
+        int ty = 2 + (14 + fm.getAscent() - fm.getDescent()) / 2;
+        g2.drawString(s, tx, ty);
+
+        g2.dispose();
+    }
+}
+
 // ── Undo/redo snapshot ────────────────────────────────────────────────────────
 // Bundles the raster canvas together with a deep copy of the currently placed
-// circuit components, so a single undo/redo timeline covers both freehand/
-// shape edits AND circuit component placement, moves, resizes, and deletes.
+// circuit components and text boxes, so a single undo/redo timeline covers
+// freehand/shape edits AND circuit component / textbox placement, moves,
+// resizes, edits, and deletes.
 class CanvasState {
     final BufferedImage image;
     final java.util.List<CircuitComponentShape> components;
-    CanvasState(BufferedImage image, java.util.List<CircuitComponentShape> components) {
+    final java.util.List<TextBoxShape> textBoxes;
+    CanvasState(BufferedImage image,
+                java.util.List<CircuitComponentShape> components,
+                java.util.List<TextBoxShape> textBoxes) {
         this.image = image;
         this.components = components;
+        this.textBoxes = textBoxes;
     }
 }
 
@@ -634,8 +727,15 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
     // Rectangle/Oval shapes) still commits straight to the canvas, unchanged.
     java.util.List<CircuitComponentShape> circuitComponents = new ArrayList<>();
     CircuitComponentShape selectedComponent; // currently selected, or null
-    int   dragHandle;                        // 0 = none, 1 = endpoint a, 2 = endpoint b, 3 = whole body
-    Point dragAnchorA, dragAnchorB, dragStart; // starting state for a body move
+    int   dragHandle;                        // 0=none, 1=endpoint a, 2=endpoint b, 3=component body, 4=textbox body
+    Point dragAnchorA, dragAnchorB, dragStart; // starting state for a component body move
+
+    // Text labels (e.g. component values) — same "live editable object"
+    // treatment as circuit components: not baked into the raster canvas, so
+    // they can be moved, edited, and deleted via the Select tool.
+    java.util.List<TextBoxShape> textBoxes = new ArrayList<>();
+    TextBoxShape selectedTextBox;   // currently selected, or null
+    Point        dragAnchorText;    // starting position for a textbox move
 
     // In-progress shape for rubber-band preview (shapes) or segment tracking (freehand)
     DrawableShape liveShape;
@@ -682,7 +782,7 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         return canvas;
     }
 
-    // Deep copy of the current canvas + circuit components, for undo/redo snapshots.
+    // Deep copy of the current canvas + circuit components + text boxes, for undo/redo snapshots.
     private CanvasState snapshot() {
         BufferedImage img = new BufferedImage(
             getCanvas().getWidth(), getCanvas().getHeight(), BufferedImage.TYPE_INT_RGB);
@@ -693,12 +793,15 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         java.util.List<CircuitComponentShape> compsCopy = new ArrayList<>();
         for (CircuitComponentShape c : circuitComponents) compsCopy.add(c.copy());
 
-        return new CanvasState(img, compsCopy);
+        java.util.List<TextBoxShape> textCopy = new ArrayList<>();
+        for (TextBoxShape t : textBoxes) textCopy.add(t.copy());
+
+        return new CanvasState(img, compsCopy, textCopy);
     }
 
-    // Flattens the raster canvas and all placed circuit components into a
-    // single image — used for Save PNG so exported files show exactly what's
-    // on screen, even though components live as separate editable objects.
+    // Flattens the raster canvas, all placed circuit components, and all text
+    // boxes into a single image — used for Save PNG so exported files show
+    // exactly what's on screen, even though these live as separate editable objects.
     BufferedImage renderFlattened() {
         BufferedImage img = new BufferedImage(
             getCanvas().getWidth(), getCanvas().getHeight(), BufferedImage.TYPE_INT_RGB);
@@ -706,6 +809,7 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.drawImage(canvas, 0, 0, null);
         for (CircuitComponentShape c : circuitComponents) c.draw(g);
+        for (TextBoxShape t : textBoxes) t.draw(g);
         g.dispose();
         return img;
     }
@@ -741,8 +845,14 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         for (CircuitComponentShape comp : circuitComponents) {
             comp.draw(g2);
         }
-        if ("Select".equals(currentShape) && selectedComponent != null) {
-            drawSelectionHandles(g2, selectedComponent);
+        // Persistent text labels — same treatment (movable/editable, not
+        // baked into the canvas).
+        for (TextBoxShape t : textBoxes) {
+            t.draw(g2);
+        }
+        if ("Select".equals(currentShape)) {
+            if (selectedComponent != null) drawSelectionHandles(g2, selectedComponent);
+            if (selectedTextBox != null)   drawTextSelection(g2, selectedTextBox);
         }
 
         // Rubber-band preview for shapes (Line / Rect / Oval / new circuit component)
@@ -780,6 +890,17 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
             h.setStroke(new BasicStroke(1.4f));
             h.drawRect(p.x - r, p.y - r, 2 * r, 2 * r);
         }
+        h.dispose();
+    }
+
+    // Highlight box around a selected text label's bounds.
+    private void drawTextSelection(Graphics2D g2, TextBoxShape t) {
+        Graphics2D h = (Graphics2D) g2.create();
+        h.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Rectangle b = t.bounds();
+        h.setColor(new Color(30, 120, 255));
+        h.setStroke(new BasicStroke(1.6f));
+        h.drawRoundRect(b.x - 2, b.y - 2, b.width + 4, b.height + 4, 6, 6);
         h.dispose();
     }
 
@@ -839,14 +960,30 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
                 : new Point(fixed.x, moving.y);
     }
 
-    // Called by mousePressed when in Select mode: finds the topmost component
-    // under the click (if any), selects it, and records enough state to
-    // resize/move it as the drag proceeds. Pushes an undo snapshot only when
+    // Called by mousePressed when in Select mode: finds the topmost object
+    // under the click (a text box first, since those are drawn on top, then
+    // circuit components), selects it, and records enough state to
+    // move/resize it as the drag proceeds. Pushes an undo snapshot only when
     // an actual edit is about to start — clicking empty space just clears
     // the selection without creating a wasted undo step.
     private void handleSelectPress(Point p) {
         selectedComponent = null;
+        selectedTextBox    = null;
         dragHandle = 0;
+
+        for (int i = textBoxes.size() - 1; i >= 0; i--) {
+            TextBoxShape t = textBoxes.get(i);
+            if (t.bounds().contains(p)) {
+                undoStack.push(snapshot());
+                redoStack.clear();
+                selectedTextBox = t;
+                dragHandle      = 4;
+                dragAnchorText  = new Point(t.position);
+                dragStart       = p;
+                return;
+            }
+        }
+
         for (int i = circuitComponents.size() - 1; i >= 0; i--) {
             CircuitComponentShape c = circuitComponents.get(i);
             int hit = hitTest(c, p);
@@ -858,20 +995,29 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
                 dragAnchorA = new Point(c.a);
                 dragAnchorB = new Point(c.b);
                 dragStart = p;
-                break;
+                return;
             }
         }
     }
 
-    // Removes the currently selected component (Select tool only).
+    // Removes the currently selected component or text box (Select tool only).
     void deleteSelected() {
-        if (!"Select".equals(currentShape) || selectedComponent == null) return;
-        undoStack.push(snapshot());
-        redoStack.clear();
-        circuitComponents.remove(selectedComponent);
-        selectedComponent = null;
-        dragHandle = 0;
-        repaint();
+        if (!"Select".equals(currentShape)) return;
+        if (selectedTextBox != null) {
+            undoStack.push(snapshot());
+            redoStack.clear();
+            textBoxes.remove(selectedTextBox);
+            selectedTextBox = null;
+            dragHandle = 0;
+            repaint();
+        } else if (selectedComponent != null) {
+            undoStack.push(snapshot());
+            redoStack.clear();
+            circuitComponents.remove(selectedComponent);
+            selectedComponent = null;
+            dragHandle = 0;
+            repaint();
+        }
     }
 
     // ── Mouse events ──────────────────────────────────────────────────────────
@@ -883,10 +1029,27 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
 
         if ("Select".equals(currentShape)) {
             handleSelectPress(startPoint);
-            if (statusBar != null)
-                statusBar.setText(selectedComponent != null
-                    ? "  Selected " + selectedComponent.type + " — drag to move/resize, Delete to remove"
-                    : "  Select tool — click a circuit component to edit it");
+            if (statusBar != null) {
+                if (selectedComponent != null)
+                    statusBar.setText("  Selected " + selectedComponent.type + " — drag to move/resize, Delete to remove");
+                else if (selectedTextBox != null)
+                    statusBar.setText("  Selected textbox — drag to move, double-click to edit, Delete to remove");
+                else
+                    statusBar.setText("  Select tool — click a component or textbox to edit it");
+            }
+            repaint();
+            return;
+        }
+
+        if ("Textbox".equals(currentShape)) {
+            Point anchor = magnetEnabled ? snapPoint(startPoint) : startPoint;
+            String text = JOptionPane.showInputDialog(this,
+                    "Label text (e.g. R1 = 220Ω):", "Add Textbox", JOptionPane.PLAIN_MESSAGE);
+            if (text != null && !text.isBlank()) {
+                undoStack.push(snapshot());
+                redoStack.clear();
+                textBoxes.add(new TextBoxShape(anchor, text.trim(), currentColor));
+            }
             repaint();
             return;
         }
@@ -924,6 +1087,16 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         Point current = e.getPoint();
 
         if ("Select".equals(currentShape)) {
+            if (dragHandle == 4 && selectedTextBox != null) {
+                int dx = current.x - dragStart.x, dy = current.y - dragStart.y;
+                Point newPos = new Point(dragAnchorText.x + dx, dragAnchorText.y + dy);
+                if (magnetEnabled) newPos = snapPoint(newPos);
+                selectedTextBox.position = newPos;
+                if (statusBar != null) statusBar.setText("  Moving textbox");
+                repaint();
+                return;
+            }
+
             if (selectedComponent == null || dragHandle == 0) return;
             switch (dragHandle) {
                 case 1 -> {
@@ -1003,10 +1176,14 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
     public void mouseReleased(MouseEvent e) {
         if ("Select".equals(currentShape)) {
             dragHandle = 0; // stop dragging, keep the selection so handles stay visible
-            if (statusBar != null)
-                statusBar.setText(selectedComponent != null
-                    ? "  Selected " + selectedComponent.type + " — drag to move/resize, Delete to remove"
-                    : "  Select tool — click a circuit component to edit it");
+            if (statusBar != null) {
+                if (selectedComponent != null)
+                    statusBar.setText("  Selected " + selectedComponent.type + " — drag to move/resize, Delete to remove");
+                else if (selectedTextBox != null)
+                    statusBar.setText("  Selected textbox — drag to move, double-click to edit, Delete to remove");
+                else
+                    statusBar.setText("  Select tool — click a component or textbox to edit it");
+            }
             repaint();
             return;
         }
@@ -1040,7 +1217,9 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
             CanvasState state = undoStack.pop();
             canvas = state.image;
             circuitComponents = state.components;
+            textBoxes = state.textBoxes;
             selectedComponent = null;
+            selectedTextBox = null;
             dragHandle = 0;
             repaint();
         }
@@ -1052,7 +1231,9 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
             CanvasState state = redoStack.pop();
             canvas = state.image;
             circuitComponents = state.components;
+            textBoxes = state.textBoxes;
             selectedComponent = null;
+            selectedTextBox = null;
             dragHandle = 0;
             repaint();
         }
@@ -1066,7 +1247,9 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         g.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
         g.dispose();
         circuitComponents.clear();
+        textBoxes.clear();
         selectedComponent = null;
+        selectedTextBox = null;
         dragHandle = 0;
         repaint();
     }
@@ -1080,8 +1263,13 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
 
         if ("Select".equals(currentShape)) {
             boolean over = false;
-            for (CircuitComponentShape c : circuitComponents) {
-                if (hitTest(c, mousePosition) != 0) { over = true; break; }
+            for (TextBoxShape t : textBoxes) {
+                if (t.bounds().contains(mousePosition)) { over = true; break; }
+            }
+            if (!over) {
+                for (CircuitComponentShape c : circuitComponents) {
+                    if (hitTest(c, mousePosition) != 0) { over = true; break; }
+                }
             }
             setCursor(Cursor.getPredefinedCursor(over ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
         } else if (getCursor().getType() != Cursor.DEFAULT_CURSOR) {
@@ -1089,7 +1277,26 @@ class DrawingPanel extends JPanel implements MouseListener, MouseMotionListener 
         }
         repaint();
     }
-    @Override public void mouseClicked(MouseEvent e) {}
+
+    // Double-click a text box while in Select mode to edit its text.
+    @Override public void mouseClicked(MouseEvent e) {
+        if (!"Select".equals(currentShape) || e.getClickCount() != 2) return;
+        Point p = e.getPoint();
+        for (int i = textBoxes.size() - 1; i >= 0; i--) {
+            TextBoxShape t = textBoxes.get(i);
+            if (t.bounds().contains(p)) {
+                String newText = JOptionPane.showInputDialog(this, "Edit label text:", t.text);
+                if (newText != null && !newText.isBlank()) {
+                    undoStack.push(snapshot());
+                    redoStack.clear();
+                    t.text = newText.trim();
+                    selectedTextBox = t;
+                    repaint();
+                }
+                return;
+            }
+        }
+    }
     @Override public void mouseEntered(MouseEvent e) {}
     @Override public void mouseExited (MouseEvent e) {}
 }
