@@ -141,70 +141,78 @@ javac -version
 
 ## 📷 Screenshots
 
-| Tool Controls & Color Chooser |
+| Tool Controls |
 |:---:|
-<img width="1920" height="1018" alt="Tool Controls   Color Chooser " src="https://github.com/user-attachments/assets/33471a6f-049c-4ac7-bf2a-cd4d83425a62" />
-
-
----
-| Canvas Drawing & Opacity |
-| :---: |
-<img width="1920" height="1020" alt="Canvas Drawing   Opacity " src="https://github.com/user-attachments/assets/4b301d42-b5a2-40ee-813c-399a96dfc4c0" />
-
+<img width="1920" height="1020" alt="Tool Controls " src="https://github.com/user-attachments/assets/9f8d92c6-de41-4666-a156-e1801a7b4229" />
 
 ---
+
 | Color Chooser Palette | 
 |:---:|
-<img width="765" height="473" alt="Color Chooser Palette 1 " src="https://github.com/user-attachments/assets/8dd497a9-b363-4a3c-b5dd-a0515a0f550f" />
-<img width="765" height="473" alt="Color Chooser Palette 2 " src="https://github.com/user-attachments/assets/550e0784-8141-4240-9057-9e07110a493f" />
-<img width="765" height="473" alt="Color Chooser Palette 3 " src="https://github.com/user-attachments/assets/32160d60-e3e3-48db-9e67-02093288770d" />
-<img width="765" height="473" alt="Color Chooser Palette 4 " src="https://github.com/user-attachments/assets/a75c137e-ea16-438c-a16c-a80cdae0e5ba" />
-<img width="765" height="473" alt="Color Chooser Palette 5 " src="https://github.com/user-attachments/assets/babb3039-0e95-48b0-ad74-6326f5151de3" />
+<img width="765" height="473" alt="Color Chooser Palette 1 " src="https://github.com/user-attachments/assets/9a27b90c-4f28-4732-a571-43ade99c5495" />
+<img width="765" height="473" alt="Color Chooser Palette 2 " src="https://github.com/user-attachments/assets/5b5e719a-052e-4533-be49-a916e17d2362" />
+<img width="765" height="473" alt="Color Chooser Palette 3 " src="https://github.com/user-attachments/assets/400f07f9-b6ed-4751-9db1-2a6a5ed60c60" />
+<img width="765" height="473" alt="Color Chooser Palette 4 " src="https://github.com/user-attachments/assets/3b5cb9f1-62f3-41fb-901a-c6bbff52c231" />
+<img width="765" height="473" alt="Color Chooser Palette 5 " src="https://github.com/user-attachments/assets/180b9677-78ec-4aa3-8679-ccffaded11ec" />
 
 ---
+
+| Canvas Drawing & Opacity |
+| :---: |
+<img width="1920" height="1020" alt="Canvas Drawing   Opacity " src="https://github.com/user-attachments/assets/fa36b87e-eb7d-4cd7-b308-31e262dffac7" />
+
+---
+
 | Freehand Drawing & Shapes |
 |:---:|
-<img width="1920" height="1020" alt="Freehand Drawing   Shapes " src="https://github.com/user-attachments/assets/50fc4795-0a29-4a9d-b533-96a4efeea2c3" />
+<img width="1920" height="1020" alt="Freehand Drawing   Shapes " src="https://github.com/user-attachments/assets/be8d421b-77c3-4202-9640-2fbd5971c75c" />
 
 ---
+
 | Grid Overlay View |
 | :---: |
-<img width="1920" height="1020" alt="Grid Overlay View " src="https://github.com/user-attachments/assets/644b4f55-2aad-4957-9bcf-72bd7f91ba89" />
+<img width="1920" height="1020" alt="Grid Overlay View " src="https://github.com/user-attachments/assets/d550b55e-c62b-4b92-b0a9-1b437b838b40" />
 
 ---
+
 | Basic Circuit Design |
 | :---: |
-<img width="1920" height="1020" alt="Basic Circuit Design " src="https://github.com/user-attachments/assets/e370d912-ae51-40cf-8c3b-3ec5fb07123e" />
-Circuit Design is much easier with the Grid function
-<img width="1920" height="1020" alt="Easy Circuit Design with Grid Function " src="https://github.com/user-attachments/assets/f3a22a0d-3fc7-40cc-af9f-0c8cc8f1efc2" />
+<img width="1920" height="1020" alt="Basic Circuit Design " src="https://github.com/user-attachments/assets/87bcf7de-0205-45c9-ac13-784ad5fa46b5" />
+Circuit design is easier with the Grid feature
+<img width="1920" height="1020" alt="Easy Circuit Design with Grid Function " src="https://github.com/user-attachments/assets/102ba1a1-cec5-4761-be8a-0c94ccf70b6f" />
 
 ---
+
 | Magnet Snapping |
 | :---: |
-<img width="106" height="38" alt="Magnet Snapping " src="https://github.com/user-attachments/assets/f2735f2b-2472-4521-a733-ac33cc1314c0" />
-
+<img width="103" height="37" alt="Magnet Snapping " src="https://github.com/user-attachments/assets/f82b50ba-894b-46be-9510-fd39b0b95910" />
 
 ---
+
 | Textbox Value Labels |
 | :---: |
-<img width="1920" height="1020" alt="Textbox Value Labels " src="https://github.com/user-attachments/assets/ac25132f-d71c-4e09-ad0d-677ae456e2dc" />
+<img width="1920" height="1020" alt="Textbox Value Labels " src="https://github.com/user-attachments/assets/7202fe75-3ead-48ce-a165-08a560b43da2" />
 
 ---
+
 | Selecting & Moving Circuit Components |
 | :---: |
-<img width="1535" height="815" alt="Selecting   Moving Circuit Components 1 " src="https://github.com/user-attachments/assets/dd09a335-0b88-4b6a-af59-9b8f2a78bec0" />
-<img width="1920" height="1020" alt="Selecting   Moving Circuit Components 2 " src="https://github.com/user-attachments/assets/d6e6eafb-100a-4ed5-85ad-0111e4c0b426" />
+<img width="1535" height="815" alt="Selecting   Moving Circuit Components 1 " src="https://github.com/user-attachments/assets/4b6da8ff-ead9-445a-b40e-780e78aab4b6" />
+Circuit components can be resized and moved
+<img width="1920" height="1020" alt="Selecting   Moving Circuit Components 2 " src="https://github.com/user-attachments/assets/73877d88-e0d2-40f6-a3be-570d9a9ab4f7" />
 
 ---
+
 | Shift-Constrained Straight Lines & Perfect Shapes |
 | :---: |
-<img width="1920" height="1020" alt="Shift-Constrained Straight Lines   Perfect Shapes " src="https://github.com/user-attachments/assets/5e81e3b0-c50f-4e40-b8df-923d90d7920f" />
+<img width="1920" height="1020" alt="Shift-Constrained Straight Lines   Perfect Shapes " src="https://github.com/user-attachments/assets/4106aab6-57c0-47fc-8f18-d6e41b8d9e7f" />
 
 ---
+
 | Native File Export |
 | :---: |
-<img width="1535" height="815" alt="Native File Export 1 " src="https://github.com/user-attachments/assets/d3ea6312-9b74-4cb9-b5e9-653334766af5" />
-<img width="1536" height="706" alt="Native File Export 2 " src="https://github.com/user-attachments/assets/7769f558-84bb-4880-836f-cac200ef478a" />
+<img width="1535" height="815" alt="Native File Export 1 " src="https://github.com/user-attachments/assets/654674fa-c8ed-4ab0-82df-0755d3185d16" />
+<img width="1536" height="731" alt="Native File Export 2 " src="https://github.com/user-attachments/assets/5646daeb-92bd-440f-8fbf-35544d811d96" />
 
 ---
 
