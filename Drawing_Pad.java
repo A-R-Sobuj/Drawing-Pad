@@ -31,7 +31,7 @@ class DrawingFrame extends JFrame {
         panel = new DrawingPanel();
         add(panel, BorderLayout.CENTER);
 
-        JPanel tools = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+        JPanel tools = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
         tools.setBorder(BorderFactory.createEtchedBorder());
 
         JButton       colorBtn  = new JButton("Color");
@@ -85,7 +85,7 @@ class DrawingFrame extends JFrame {
                 g2.dispose();
             }
         };
-        preview.setPreferredSize(new Dimension(55, 55));
+        preview.setPreferredSize(new Dimension(34, 34));
         preview.setOpaque(false);
         preview.setBackground(Color.WHITE);
         preview.setBorder(null);
