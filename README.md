@@ -66,14 +66,28 @@ A lightweight, feature-packed desktop digital drawing and sketching application 
 ## 📁 Project Structure
 
 ```
-sobuj-drawing-pad/
-├── Drawing_Pad.java        # Main application source code
-├── README.md               # Project documentation
-└── screenshots/            # UI screenshots for documentation
-    ├── main_window.png
-    ├── color_chooser.png
-    ├── grid_view.png
-    └── save_dialog.png
+Sobuj's Drawing Pad\
+├── Drawing_Pad.java      # Main application source code
+├── README.md             # Project documentation
+└── Screenshots\          # UI screenshots for documentation
+    ├── Tool Controls & Color Chooser .png
+    ├── Canvas Drawing & Opacity .png
+    ├── Color Chooser Palette 1 .png
+    ├── Color Chooser Palette 2 .png
+    ├── Color Chooser Palette 3 .png
+    ├── Color Chooser Palette 4 .png
+    ├── Color Chooser Palette 5 .png
+    ├── Freehand Drawing & Shapes .png
+    ├── Grid Overlay View .png
+    ├── Basic Circuit Design .png
+    ├── Easy Circuit Design with Grid Function .png
+    ├── Magnet Snapping .png
+    ├── Textbox Value Labels .png
+    ├── Selecting & Moving Circuit Components 1 .png
+    ├── Selecting & Moving Circuit Components 2 .png
+    ├── Shift-Constrained Straight Lines & Perfect Shapes .png
+    ├── Native File Export 1 .png
+    └── Native File Export 2 .png
 ```
 
 ---
