@@ -129,60 +129,68 @@ javac -version
 
 | Tool Controls & Color Chooser |
 |:---:|
-<img width="1919" height="1015" alt="Screenshot 2026-08-15 144155" src="https://github.com/user-attachments/assets/10a6c84e-5e32-474b-9834-5270030c031b" />
+<img width="1920" height="1018" alt="Tool Controls   Color Chooser " src="https://github.com/user-attachments/assets/33471a6f-049c-4ac7-bf2a-cd4d83425a62" />
+
 
 ---
 | Canvas Drawing & Opacity |
 | :---: |
-<img width="1359" height="929" alt="Screenshot 2026-08-15 151550" src="https://github.com/user-attachments/assets/cb78939e-302c-4491-b5a8-fb3f8c9de6e6" />
+<img width="1920" height="1020" alt="Canvas Drawing   Opacity " src="https://github.com/user-attachments/assets/4b301d42-b5a2-40ee-813c-399a96dfc4c0" />
+
 
 ---
 | Color Chooser Palette | 
 |:---:|
-<img width="765" height="474" alt="Screenshot 2026-08-15 151647" src="https://github.com/user-attachments/assets/4d580feb-ba30-4c9b-8e48-187308082512" />
-<img width="765" height="474" alt="Screenshot 2026-08-15 151650" src="https://github.com/user-attachments/assets/c9ff5be5-594f-45b9-b5a0-36db2ecea6ff" />
-<img width="765" height="474" alt="Screenshot 2026-08-15 151654" src="https://github.com/user-attachments/assets/4f5b5035-5887-42fb-a4c8-bc2564701634" />
-<img width="765" height="474" alt="Screenshot 2026-08-15 151657" src="https://github.com/user-attachments/assets/7edf8efa-01f7-491d-a51d-38a3a7162cc9" />
-<img width="765" height="474" alt="Screenshot 2026-08-15 151659" src="https://github.com/user-attachments/assets/a650d5b5-47c7-40d2-99d7-bc0123c20288" />
+<img width="765" height="473" alt="Color Chooser Palette 1 " src="https://github.com/user-attachments/assets/8dd497a9-b363-4a3c-b5dd-a0515a0f550f" />
+<img width="765" height="473" alt="Color Chooser Palette 2 " src="https://github.com/user-attachments/assets/550e0784-8141-4240-9057-9e07110a493f" />
+<img width="765" height="473" alt="Color Chooser Palette 3 " src="https://github.com/user-attachments/assets/32160d60-e3e3-48db-9e67-02093288770d" />
+<img width="765" height="473" alt="Color Chooser Palette 4 " src="https://github.com/user-attachments/assets/a75c137e-ea16-438c-a16c-a80cdae0e5ba" />
+<img width="765" height="473" alt="Color Chooser Palette 5 " src="https://github.com/user-attachments/assets/babb3039-0e95-48b0-ad74-6326f5151de3" />
 
 ---
 | Freehand Drawing & Shapes |
 |:---:|
-<img width="1359" height="929" alt="Screenshot 2026-08-15 152010" src="https://github.com/user-attachments/assets/636b8dea-d585-4db0-8c31-be919ca82904" />
+<img width="1920" height="1020" alt="Freehand Drawing   Shapes " src="https://github.com/user-attachments/assets/50fc4795-0a29-4a9d-b533-96a4efeea2c3" />
 
 ---
 | Grid Overlay View |
 | :---: |
-<img width="1359" height="929" alt="Screenshot 2026-08-15 152143" src="https://github.com/user-attachments/assets/01d3b6bf-9ae6-4269-ac68-6bc4f2d35459" />
+<img width="1920" height="1020" alt="Grid Overlay View " src="https://github.com/user-attachments/assets/644b4f55-2aad-4957-9bcf-72bd7f91ba89" />
 
 ---
 | Basic Circuit Design |
 | :---: |
-<img width="1608" height="928" alt="Screenshot 2026-08-24 172348" src="https://github.com/user-attachments/assets/71f3c524-4b4b-4003-8423-6b1e0a840c69" />
+<img width="1920" height="1020" alt="Basic Circuit Design " src="https://github.com/user-attachments/assets/e370d912-ae51-40cf-8c3b-3ec5fb07123e" />
 Circuit Design is much easier with the Grid function
-<img width="1608" height="928" alt="Screenshot 2026-08-24 172823" src="https://github.com/user-attachments/assets/f0a27c9e-a320-46c5-92e3-ac5b8d69a2f0" />
+<img width="1920" height="1020" alt="Easy Circuit Design with Grid Function " src="https://github.com/user-attachments/assets/f3a22a0d-3fc7-40cc-af9f-0c8cc8f1efc2" />
 
 ---
 | Magnet Snapping |
 | :---: |
+<img width="106" height="38" alt="Magnet Snapping " src="https://github.com/user-attachments/assets/f2735f2b-2472-4521-a733-ac33cc1314c0" />
+
 
 ---
 | Textbox Value Labels |
 | :---: |
+<img width="1920" height="1020" alt="Textbox Value Labels " src="https://github.com/user-attachments/assets/ac25132f-d71c-4e09-ad0d-677ae456e2dc" />
 
 ---
 | Selecting & Moving Circuit Components |
 | :---: |
+<img width="1535" height="815" alt="Selecting   Moving Circuit Components 1 " src="https://github.com/user-attachments/assets/dd09a335-0b88-4b6a-af59-9b8f2a78bec0" />
+<img width="1920" height="1020" alt="Selecting   Moving Circuit Components 2 " src="https://github.com/user-attachments/assets/d6e6eafb-100a-4ed5-85ad-0111e4c0b426" />
 
 ---
 | Shift-Constrained Straight Lines & Perfect Shapes |
 | :---: |
+<img width="1920" height="1020" alt="Shift-Constrained Straight Lines   Perfect Shapes " src="https://github.com/user-attachments/assets/5e81e3b0-c50f-4e40-b8df-923d90d7920f" />
 
 ---
 | Native File Export |
 | :---: |
-<img width="1358" height="924" alt="Screenshot 2026-08-15 152250" src="https://github.com/user-attachments/assets/878549b8-e9e0-4d0c-9faf-695ab2f1e135" />
-<img width="1286" height="626" alt="Um actually" src="https://github.com/user-attachments/assets/a0c46e1c-8d49-42fd-ac31-8b3ec4046899" />
+<img width="1535" height="815" alt="Native File Export 1 " src="https://github.com/user-attachments/assets/d3ea6312-9b74-4cb9-b5e9-653334766af5" />
+<img width="1536" height="706" alt="Native File Export 2 " src="https://github.com/user-attachments/assets/7769f558-84bb-4880-836f-cac200ef478a" />
 
 ---
 
