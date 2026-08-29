@@ -71,12 +71,12 @@ Sobuj's Drawing Pad\
 ├── README.md             # Project documentation
 └── Screenshots\          # UI screenshots for documentation
     ├── Tool Controls & Color Chooser .png
-    ├── Canvas Drawing & Opacity .png
     ├── Color Chooser Palette 1 .png
     ├── Color Chooser Palette 2 .png
     ├── Color Chooser Palette 3 .png
     ├── Color Chooser Palette 4 .png
     ├── Color Chooser Palette 5 .png
+    ├── Canvas Drawing & Opacity .png
     ├── Freehand Drawing & Shapes .png
     ├── Grid Overlay View .png
     ├── Basic Circuit Design .png
