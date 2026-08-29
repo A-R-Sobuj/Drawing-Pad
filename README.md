@@ -70,7 +70,7 @@ Sobuj's Drawing Pad\
 ├── Drawing_Pad.java      # Main application source code
 ├── README.md             # Project documentation
 └── Screenshots\          # UI screenshots for documentation
-    ├── Tool Controls & Color Chooser .png
+    ├── Tool Controls .png
     ├── Color Chooser Palette 1 .png
     ├── Color Chooser Palette 2 .png
     ├── Color Chooser Palette 3 .png
