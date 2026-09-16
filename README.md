@@ -33,7 +33,7 @@ A lightweight, feature-packed desktop digital drawing and sketching application 
   * **Free Draw:** Smooth freehand sketching and drawing.
   * **Shape Selection Dropdown:** Easily switch between Free Draw and geometric shape tools (Line, Rectangle, Oval).
   * **Eraser Tool:** Dedicated erase tool for clean error corrections.
-  * **Fill Tool:** shape fill to quickly color closed shapes or areas.
+  * **Fill Tool:** Shape fill to quickly color closed shapes or areas.
   * **Shift-to-Straighten:** Hold `Shift` while drawing a Line to lock it perfectly horizontal or vertical, or while drawing a Rectangle/Oval to lock it to a perfect square/circle — works with Fill on or off.
 
 * **🔌 Circuit Design Suite:**
